@@ -1,0 +1,28 @@
+
+
+.header-bar {
+    height: 50px;
+    background-color: black;
+}
+
+.header-logo {
+    float: left;
+    margin-left: 47px;
+    margin-right: 47px;
+    width: 200px;
+    height: 100%;
+    background-color: yellow;
+}
+
+.header-center {
+    float: left;
+    width: calc(100% - 594px);
+    height: 100%;
+}
+
+.header-profile {
+    float: left;
+    width: 300px;
+    height: 100%;
+    background-color: antiquewhite;
+}
