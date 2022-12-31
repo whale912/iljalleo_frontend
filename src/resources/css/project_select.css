@@ -14,6 +14,27 @@
     background-color: white;
 }
 
+.selected-project{
+    position: absolute;
+    width: calc(100% - 10px);
+    height: calc(100% - 10px);
+    top: 5px;
+    left: 5px;
+    border-radius: 5px;
+    background-color: lightsteelblue;
+    z-index: 99;
+}
+
+.cancel-select{
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    z-index: 99;
+    top: 10px;
+    right: 10px;
+    background-color: red;
+}
+
 .project-arrow {
     position: absolute;
     top: 10px;
@@ -43,4 +64,8 @@
     height: 38px;
     display: inline-block;
     border-bottom: 1px dashed;
+}
+
+.option-selected{
+    background-color: red;
 }

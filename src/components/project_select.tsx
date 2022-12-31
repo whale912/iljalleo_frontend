@@ -1,16 +1,43 @@
-import React, {Dispatch, SetStateAction, useState} from "react";
+import React, {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
 import '../layouts/menu'
 import '../resources/css/project_select.css'
-import {projectProps} from "../layouts/menu";
+import axios from "axios";
 
-const Project_select:React.FC<projectProps> = ({setSelectedProject}) => {
+/**
+ * @ComponentName : ProjectSelect
+ * @Description : 프로젝트 선택 Component
+ * @Props : { selectedProjectInfo [선택된 프로젝트 정보 from App.tsx] },
+ *          { selectProject [selectedProjectInfo state 변경함수 from App.tsx] }
+ * @ChildComponents : { <ProjectOptions> [프로젝트 선택의 Option 목록] : 92 Line }
+ */
+const ProjectSelect = (props: {
+        selectedProjectInfo: {prjtId: string, prjtName: string},
+        selectProject: React.Dispatch<React.SetStateAction<{prjtId: string, prjtName: string}>>
+    }) => {
+
+    // 선택된 프로젝트 Div 스타일
+    const [selectedStyle, setSelectedStyle] = useState({display: "none"});
+
+    const [contentEditable, setContentEditable] = useState(true);
+
+    useEffect(()=>{
+        if(props.selectedProjectInfo.prjtId==""){
+            setSelectedStyle({display: "none"});
+            setContentEditable(true);
+        }else{
+            setSelectedStyle({display: "block"});
+            setContentEditable(false);
+        }
+    }, [props.selectedProjectInfo])
+
+    const [keyword, setKeyword] = useState("");
 
     // 화살표 버튼 클릭시 select 옵션 리스트 보여주기
-    const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handleArrowClick = (e: React.MouseEvent<HTMLDivElement>) => {
         let eventTarget = e.target instanceof HTMLElement?e.target:null;
         if(eventTarget!=null && eventTarget.nextElementSibling instanceof HTMLElement){ // type 체크
             let projectOptionBox = eventTarget.nextElementSibling; // 옵션박스
-            if(projectOptionBox.style.display=="none"){ // 숨긴 상태면 show / 보여지는 상태면 hide
+            if(projectOptionBox.style.display=="none" || projectOptionBox.style.display==""){ // 숨긴 상태면 show / 보여지는 상태면 hide
                 projectOptionBox.style.display="block";
             }else{
                 projectOptionBox.style.display="none";
@@ -18,26 +45,140 @@ const Project_select:React.FC<projectProps> = ({setSelectedProject}) => {
         }
     }
 
+    const handleInputKeyup = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        let eventTarget = e.target instanceof HTMLElement?e.target:null;
+        if(eventTarget!=null){
+            setKeyword(eventTarget.innerHTML);
+        }
+    }
+
+    const handleCancelClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        let eventTarget = e.target instanceof HTMLElement?e.target:null;
+        if(eventTarget!=null && eventTarget.parentElement!=null
+            && eventTarget.parentElement.nextSibling instanceof HTMLElement
+            && eventTarget.parentElement.nextSibling.nextSibling instanceof HTMLElement){
+            document.querySelectorAll(".project-option").forEach(option => {
+                option.classList.remove("option-selected");
+            });
+            props.selectProject({prjtId: "", prjtName: ""});
+        }
+    }
+
     return (
         <div className="project-wrap">
-            <div className="project-select" contentEditable="true"></div>
-            <div className="project-arrow" onClick={handleClick}/>
-            <div className="project-option-box">
-                <ProjectOptions/>
-                <ProjectOptions/>
-                <ProjectOptions/>
-                <ProjectOptions/>
-                <ProjectOptions/>
-                <ProjectOptions/>
+            <div className="project-select" contentEditable={contentEditable} onKeyUp={handleInputKeyup}></div>
+            <div className="selected-project" style={selectedStyle}>
+                {props.selectedProjectInfo.prjtName}
+                <div className="cancel-select" onClick={handleCancelClick}></div>
             </div>
+            <div className="project-arrow" onClick={handleArrowClick}/>
+            <ProjectOptions keyword={keyword} selectProject={props.selectProject}/>
         </div>
     )
 }
 
-const ProjectOptions = () => {
+/**
+ * @ComponentName : ProjectOptions
+ * @Description : 프로젝트 선택 Option Component
+ * @Props : keyword [프로젝트 검색 키워드 from ProjectSelect]
+ *          selectProject [selectedProjectInfo state 변경함수 from App.tsx]
+ * @States : { style [프로젝트 Option Box의 Display 스타일] },
+ *           { projectOptions [프로젝트 Option Div Element 배열] }
+ * @UseEffects : { [] : 첫 렌더링 시 전체 프로젝트 목록을 가져와서 projectOptions 세팅 },
+ *               { props.keyword : props keyword(프로젝트 선택 입력값) 변경 시 프로젝트 목록에서 키워드 검색 }
+ */
+
+const ProjectOptions = (props: {
+        keyword: string,
+        selectProject: React.Dispatch<React.SetStateAction<{prjtId: string, prjtName: string}>>
+    }) => {
+
+    const [style, setStyle] = useState({display: "none"});
+
+    const [projectOptions, setProjectOptions] = useState([<div/>]);
+
+    useEffect( () => {
+        getProjectList((optionsList: JSX.Element [])=>{
+            setProjectOptions(optionsList);
+        });
+    }, []);
+
+    useEffect( () => {
+        getProjectList((optionsList: JSX.Element [])=>{
+            findKeywordFromText(props.keyword, optionsList);
+        });
+    }, [props.keyword]);
+
+    /**
+     * @MethodName : optionClickEvent
+     * @Description : Option 클릭(선택) 이벤트
+     * @Param e [ ClickEvent ]
+     */
+    const optionClickEvent = (e: React.MouseEvent<HTMLDivElement>) => {
+        let eventTarget = e.target instanceof HTMLElement ? e.target : null; // event 타겟 Element
+        if (eventTarget != null && eventTarget.parentElement instanceof HTMLElement) {
+            // 모든 Option의 선택 class 제거(초기화)
+            eventTarget.parentElement.querySelectorAll(".project-option").forEach(option => {
+                option.classList.remove("option-selected");
+            });
+            // 선택한 타겟 Element 선택 class 추가
+            eventTarget.classList.add("option-selected");
+            // 선택된 프로젝트 State 변경 from App.tsx
+            props.selectProject({prjtId: eventTarget.id, prjtName: eventTarget.innerHTML});
+            // 선택한 후 Option Box 숨기기
+            eventTarget.parentElement.style.display = "none";
+        }
+    }
+
+    /**
+     * @MethodName : findKeywordFromText
+     * @Description : keyword로 검색된 Option만 세팅
+     * @Param { keyword : 검색 키워드 }, { optionList : 전체 Option 배열 }
+     */
+    const findKeywordFromText = (keyword: string, optionList: JSX.Element []) => {
+        if(keyword!=""){ // 키워드가 빈값이 아니면
+            // 전체 목록에서 키워드가 포함된 목록을 찾아 projectOptions에 세팅
+            let findList = optionList.filter(e => e.props.children.indexOf(keyword)!=-1);
+            setProjectOptions(findList);
+
+            // 검색된 Option이 하나라도 있을 경우 Option Box 노출
+            if(findList.length>0){
+                setStyle({display: "block"});
+            }
+        }else{
+            // 키워드가 빈값이면 Option Box 숨김
+            setStyle({display: "none"});
+        }
+    }
+
+    /**
+     * @MethodName : getProjectList
+     * @Description : axios로 서버에서 프로젝트 목록 가져오기
+     * @Param { callback : 응답받은 이후 실행할 callback 함수 }
+     */
+    const getProjectList = (callback:Function) =>{
+        //TODO 프로젝트 전체 => 사용자가 참여중인 프로젝트 목록으로 변경 필요
+        axios.get('http://localhost:8080/projects') 
+            .then((Response)=>{
+                let options = [] as JSX.Element [];
+                // 기본 Option 넣기
+                options.push(<div className="project-option" key={0} id="0" onClick={optionClickEvent}>미선택</div>);
+                // 응답받은 프로젝트 목록 넣기
+                options.push(...Response.data.map((projectInfo:{prjtId:number, prjtName:string}) =>
+                    <div className="project-option" key={projectInfo.prjtId} id={projectInfo.prjtId+""}
+                         onClick={optionClickEvent}>{projectInfo.prjtName}</div>));
+                callback(options); // 목록 넣은 후 callback
+            })
+            .catch((Error)=>{
+                console.log(Error)
+            });
+    }
+
     return (
-        <div className="project-option"></div>
+        <div className="project-option-box" id={props.keyword} style={style}>
+            {projectOptions}
+        </div>
     )
 }
 
-export default Project_select;
+export default ProjectSelect;
