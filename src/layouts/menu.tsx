@@ -1,4 +1,4 @@
-import React, {Dispatch, SetStateAction, useState} from 'react';
+import React, {useState} from 'react';
 import '../resources/css/menu.css';
 import ProjectSelect from "../components/project_select";
 

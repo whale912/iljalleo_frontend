@@ -1,4 +1,4 @@
-import React, {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
+import React, {useEffect,  useState} from "react";
 import '../layouts/menu'
 import '../resources/css/project_select.css'
 import axios from "axios";
@@ -8,6 +8,10 @@ import axios from "axios";
  * @Description : 프로젝트 선택 Component
  * @Props : { selectedProjectInfo [선택된 프로젝트 정보 from App.tsx] },
  *          { selectProject [selectedProjectInfo state 변경함수 from App.tsx] }
+ * @States : { selectedStyle [선택된 프로젝트 표시여부(display)] },
+ *           { contentEditable [프로젝트 선택 입력가능여부] },
+ *           { keyword [프로젝트 선택에서 입력한 키워드 => ProjectOptions에 전달] }
+ * @UseEffects : { props.selectedProjectInfo : 프로젝트 선택을 감지하여 선택된 프로젝트 표시, 프로젝트 선택 입력가능여부 변경 }
  * @ChildComponents : { <ProjectOptions> [프로젝트 선택의 Option 목록] : 92 Line }
  */
 const ProjectSelect = (props: {
@@ -17,8 +21,8 @@ const ProjectSelect = (props: {
 
     // 선택된 프로젝트 Div 스타일
     const [selectedStyle, setSelectedStyle] = useState({display: "none"});
-
     const [contentEditable, setContentEditable] = useState(true);
+    const [keyword, setKeyword] = useState("");
 
     useEffect(()=>{
         if(props.selectedProjectInfo.prjtId==""){
@@ -30,14 +34,18 @@ const ProjectSelect = (props: {
         }
     }, [props.selectedProjectInfo])
 
-    const [keyword, setKeyword] = useState("");
-
-    // 화살표 버튼 클릭시 select 옵션 리스트 보여주기
+    /**
+     * @MethodName : handleArrowClick
+     * @Description : 화살표 버튼 클릭 이벤트
+     * @Param e [ ClickEvent ]
+     */
     const handleArrowClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        let eventTarget = e.target instanceof HTMLElement?e.target:null;
+        let eventTarget = e.target instanceof HTMLElement?e.target:null; // evetn 타겟 Element
         if(eventTarget!=null && eventTarget.nextElementSibling instanceof HTMLElement){ // type 체크
-            let projectOptionBox = eventTarget.nextElementSibling; // 옵션박스
-            if(projectOptionBox.style.display=="none" || projectOptionBox.style.display==""){ // 숨긴 상태면 show / 보여지는 상태면 hide
+            // 타겟 다음 dom인 옵션박스
+            let projectOptionBox = eventTarget.nextElementSibling;
+            // 숨긴 상태면 show / 보여지는 상태면 hide
+            if(projectOptionBox.style.display=="none" || projectOptionBox.style.display==""){
                 projectOptionBox.style.display="block";
             }else{
                 projectOptionBox.style.display="none";
@@ -45,21 +53,34 @@ const ProjectSelect = (props: {
         }
     }
 
+    /**
+     * @MethodName : handleInputKeyup
+     * @Description : 프로젝트 선택 입력이벤트
+     * @Param e [ KeyUpEvent ]
+     */
     const handleInputKeyup = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        let eventTarget = e.target instanceof HTMLElement?e.target:null;
+        let eventTarget = e.target instanceof HTMLElement?e.target:null; // event 타겟 Element
         if(eventTarget!=null){
+            // keyword state 변경 => <ProjectOptions>에서 props 변경 감지하여 키워드 검색 처리
             setKeyword(eventTarget.innerHTML);
         }
     }
 
+    /**
+     * @MethodName : handleCancelClick
+     * @Description : 선택된 프로젝트 x버튼 클릭 이벤트
+     * @Param e [ ClickEvent ]
+     */
     const handleCancelClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        let eventTarget = e.target instanceof HTMLElement?e.target:null;
+        let eventTarget = e.target instanceof HTMLElement?e.target:null; // event 타겟 Element
         if(eventTarget!=null && eventTarget.parentElement!=null
             && eventTarget.parentElement.nextSibling instanceof HTMLElement
-            && eventTarget.parentElement.nextSibling.nextSibling instanceof HTMLElement){
+            && eventTarget.parentElement.nextSibling.nextSibling instanceof HTMLElement){ // type 체크
+            // 모든 Option의 선택 class 제거(초기화)
             document.querySelectorAll(".project-option").forEach(option => {
                 option.classList.remove("option-selected");
             });
+            // 선택된 프로젝트 정보 초기화
             props.selectProject({prjtId: "", prjtName: ""});
         }
     }
