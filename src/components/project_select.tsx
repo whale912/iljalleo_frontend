@@ -41,14 +41,58 @@ const ProjectSelect = (props: {
      */
     const handleArrowClick = (e: React.MouseEvent<HTMLDivElement>) => {
         let eventTarget = e.target instanceof HTMLElement?e.target:null; // evetn 타겟 Element
-        if(eventTarget!=null && eventTarget.nextElementSibling instanceof HTMLElement){ // type 체크
+        if(eventTarget!=null
+            && eventTarget.nextElementSibling instanceof HTMLElement
+            && eventTarget.previousSibling instanceof HTMLElement
+            && eventTarget.previousSibling.previousSibling instanceof HTMLElement){ // type 체크
             // 타겟 다음 dom인 옵션박스
             let projectOptionBox = eventTarget.nextElementSibling;
+            let projectSelectInput = eventTarget.previousSibling.previousSibling;
+            setKeyword(projectSelectInput.innerHTML);
             // 숨긴 상태면 show / 보여지는 상태면 hide
             if(projectOptionBox.style.display=="none" || projectOptionBox.style.display==""){
                 projectOptionBox.style.display="block";
             }else{
                 projectOptionBox.style.display="none";
+            }
+        }
+    }
+
+    const handleInputFocusOn = (e: React.FocusEvent) => {
+        let eventTarget = e.target instanceof HTMLElement?e.target:null; // event 타겟 Element
+        if(eventTarget!=null){
+            eventTarget.classList.remove("input-focusout");
+        }
+    }
+
+    const handleInptuFocusOut = (e: React.FocusEvent) => {
+        let eventTarget = e.target instanceof HTMLElement?e.target:null; // event 타겟 Element
+        if(eventTarget!=null){
+            eventTarget.classList.add("input-focusout");
+        }
+    }
+
+    const handleInputPaste = (e: React.ClipboardEvent) => {
+        let eventTarget = e.target instanceof HTMLElement?e.target:null; // event 타겟 Element
+        if(eventTarget!=null){
+            e.preventDefault();
+            let pastedData = e.clipboardData;
+            let textData = pastedData.getData('Text');
+            eventTarget.innerText=textData;
+        }
+    }
+
+    /**
+     * @MethodName : handleInputKeydown
+     * @Description : 프로젝트 선택 엔터키 막기
+     * @Param e [ KeyDownEvent ]
+     */
+    const handleInputKeydown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        let eventTarget = e.target instanceof HTMLElement?e.target:null; // event 타겟 Element
+        if(eventTarget!=null) {
+            if (e.keyCode == 13) {
+                e.preventDefault();
+                return false;
             }
         }
     }
@@ -80,14 +124,16 @@ const ProjectSelect = (props: {
             document.querySelectorAll(".project-option").forEach(option => {
                 option.classList.remove("option-selected");
             });
-            // 선택된 프로젝트 정보 초기화
+            // 선택된 프로젝트 정보 초기가
             props.selectProject({prjtId: "", prjtName: ""});
         }
     }
 
     return (
         <div className="project-wrap">
-            <div className="project-select" contentEditable={contentEditable} onKeyUp={handleInputKeyup}></div>
+            <div className="project-select" contentEditable={contentEditable} onPaste={handleInputPaste}
+                 onKeyUp={handleInputKeyup} onKeyDown={handleInputKeydown}
+                 onFocus={handleInputFocusOn} onBlur={handleInptuFocusOut}></div>
             <div className="selected-project" style={selectedStyle}>
                 {props.selectedProjectInfo.prjtName}
                 <div className="cancel-select" onClick={handleCancelClick}></div>
@@ -167,6 +213,7 @@ const ProjectOptions = (props: {
                 setStyle({display: "block"});
             }
         }else{
+            setProjectOptions(optionList);
             // 키워드가 빈값이면 Option Box 숨김
             setStyle({display: "none"});
         }
