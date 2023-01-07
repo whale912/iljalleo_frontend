@@ -162,7 +162,7 @@ const ProjectOptions = (props: {
 
     const [style, setStyle] = useState({display: "none"});
 
-    const [projectOptions, setProjectOptions] = useState([<div/>]);
+    const [projectOptions, setProjectOptions] = useState([<div key={0}/>]);
 
     useEffect( () => {
         getProjectList((optionsList: JSX.Element [])=>{
@@ -229,11 +229,9 @@ const ProjectOptions = (props: {
         axios.get('http://localhost:8080/projects') 
             .then((Response)=>{
                 let options = [] as JSX.Element [];
-                // 기본 Option 넣기
-                options.push(<div className="project-option" key={0} id="0" onClick={optionClickEvent}>미선택</div>);
                 // 응답받은 프로젝트 목록 넣기
-                options.push(...Response.data.map((projectInfo:{prjtId:number, prjtName:string}) =>
-                    <div className="project-option" key={projectInfo.prjtId} id={projectInfo.prjtId+""}
+                options.push(...Response.data.map((projectInfo:{prjtId:number, prjtName:string}, index:number) =>
+                    <div className="project-option" key={index} id={projectInfo.prjtId+""}
                          onClick={optionClickEvent}>{projectInfo.prjtName}</div>));
                 callback(options); // 목록 넣은 후 callback
             })
@@ -241,9 +239,8 @@ const ProjectOptions = (props: {
                 console.log(Error)
             });
     }
-
     return (
-        <div className="project-option-box" id={props.keyword} style={style}>
+        <div className="project-option-box" style={style}>
             {projectOptions}
         </div>
     )
